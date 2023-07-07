@@ -1,9 +1,11 @@
+import requests
+import json
 import openai
 from kg_engine import generate_response_message
 
 
 def generate_prompt(query, trace_logs):
-    prompt_template_path = "data\\dialog_prompt.txt"
+    prompt_template_path = "data/dialog_prompt.txt"
 
     # 从文件中读取 prompt 模板
     with open(prompt_template_path, 'r') as file:
@@ -16,7 +18,7 @@ def generate_prompt(query, trace_logs):
     return query
 
 
-def gpt_process(prompt):
+def gpt_openai_process(prompt):
     with open('data/openai_key.txt', 'r') as file:
         openai.api_key = file.read().strip()
 
@@ -38,12 +40,27 @@ def gpt_process(prompt):
 
     return text
 
+def chatglm_process(prompt):
+    """
+    :return:
+    """
+    url = f"http://192.168.50.189:7087/api/chat"
+    my_data = {"text": prompt}
+    headers = {'content-type': 'application/json'}
+    # 提交form格式数据
+    data = {"data": my_data}
+    r = requests.post(url, data=json.dumps(data), headers=headers)
+    assert r.status_code == 200, f"返回的status code不是200，请检查"
+    res = r.json()
+    print(json.dumps(res, indent=4, ensure_ascii=False))
+    response = res["response"]
+    return response
 
 def get_response_from_llm(query, final_entities, trace_logs):
 
     try:
         prompt = generate_prompt(query, trace_logs)
-        resp_text = gpt_process(prompt)
+        resp_text = chatglm_process(prompt)  # 更改成chatglm
         resp_message = f"{resp_text}"
     except Exception as e:
         resp_message = generate_response_message(final_entities, trace_logs)#f"在调用大模型的过程中出错"
